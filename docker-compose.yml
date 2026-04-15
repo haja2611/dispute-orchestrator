@@ -1,0 +1,64 @@
+version: "3.8"
+
+services:
+  oracle:
+    image: gvenzl/oracle-free:23-slim
+    container_name: dispute_oracle
+    environment:
+      ORACLE_PASSWORD: ${DB_PASSWORD}
+      ORACLE_DATABASE: FREEPDB1
+    ports:
+      - "1521:1521"
+    volumes:
+      - oracle_data:/opt/oracle/oradata
+      - ./database:/container-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD", "healthcheck.sh"]
+      interval: 30s
+      timeout: 20s
+      retries: 10
+      start_period: 60s
+    networks:
+      - dispute_net
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: dispute_backend
+    environment:
+      DB_USER: ${DB_USER:-system}
+      DB_PASSWORD: ${DB_PASSWORD}
+      DB_CONNECT_STRING: oracle:1521/FREEPDB1
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      oracle:
+        condition: service_healthy
+    networks:
+      - dispute_net
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-http://localhost:3000}
+    container_name: dispute_frontend
+    ports:
+      - "5173:80"
+    depends_on:
+      - backend
+    networks:
+      - dispute_net
+    restart: unless-stopped
+
+volumes:
+  oracle_data:
+
+networks:
+  dispute_net:
+    driver: bridge

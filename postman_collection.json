@@ -1,0 +1,232 @@
+{
+  "info": {
+    "name": "Smart Dispute & Refund Orchestrator",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json",
+    "_postman_id": "dispute-orchestrator-v1"
+  },
+  "variable": [
+    { "key": "base_url",   "value": "http://localhost:3000", "type": "string" },
+    { "key": "dispute_id", "value": "",                      "type": "string" }
+  ],
+  "item": [
+    {
+      "name": "Health",
+      "item": [
+        {
+          "name": "GET /health/db",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('DB is OK',  () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.success).to.be.true;",
+                  "  pm.expect(b.data.status).to.equal('OK');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/health/db" }
+          }
+        }
+      ]
+    },
+    {
+      "name": "Disputes",
+      "item": [
+        {
+          "name": "POST /disputes — create (auto-approve)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Has disputeId', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.success).to.be.true;",
+                  "  pm.expect(b.data.disputeId).to.be.a('number');",
+                  "  pm.collectionVariables.set('dispute_id', b.data.disputeId);",
+                  "  console.log('Created dispute:', b.data.disputeId);",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/disputes" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"txnId\": 1,\n  \"custId\": 1,\n  \"disputeType\": \"DUPLICATE_CHARGE\",\n  \"claimAmount\": 2500,\n  \"actor\": \"postman-agent\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /disputes — manual route (high amount)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 201', () => pm.response.to.have.status(201));",
+                  "pm.test('Dispute created', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.success).to.be.true;",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/disputes" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"txnId\": 4,\n  \"custId\": 2,\n  \"disputeType\": \"WRONG_AMOUNT\",\n  \"claimAmount\": 15000,\n  \"actor\": \"postman-agent\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /disputes",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Returns array', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.success).to.be.true;",
+                  "  pm.expect(b.data).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/disputes?custId=1",
+              "query": [{ "key": "custId", "value": "1" }]
+            }
+          }
+        },
+        {
+          "name": "GET /disputes/:id",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200', () => pm.response.to.have.status(200));",
+                  "pm.test('Has dispute + events', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.success).to.be.true;",
+                  "  pm.expect(b.data.dispute).to.be.an('object');",
+                  "  pm.expect(b.data.events).to.be.an('array');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/disputes/{{dispute_id}}" }
+          }
+        },
+        {
+          "name": "POST /disputes/:id/decision — APPROVE",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 or 422', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 422]);",
+                  "});",
+                  "pm.test('Check response', () => {",
+                  "  const b = pm.response.json();",
+                  "  if (pm.response.code === 200) {",
+                  "    pm.expect(b.success).to.be.true;",
+                  "    pm.expect(b.data.message).to.include('APPROVED');",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/disputes/{{dispute_id}}/decision" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"decision\": \"APPROVE\",\n  \"actor\": \"senior-agent\",\n  \"notes\": \"Verified duplicate in Postman test\"\n}"
+            }
+          }
+        },
+        {
+          "name": "POST /disputes/:id/refund",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 200 or 422', () => {",
+                  "  pm.expect(pm.response.code).to.be.oneOf([200, 422]);",
+                  "});",
+                  "pm.test('RefundId present when 200', () => {",
+                  "  const b = pm.response.json();",
+                  "  if (pm.response.code === 200) {",
+                  "    pm.expect(b.data.refundId).to.be.a('number');",
+                  "    pm.expect(b.data.referenceNo).to.include('REF-');",
+                  "  }",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "url": { "raw": "{{base_url}}/disputes/{{dispute_id}}/refund" },
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"actor\": \"refund-bot\"\n}"
+            }
+          }
+        },
+        {
+          "name": "GET /disputes/:id — 404 (non-existent)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "pm.test('Status 404', () => pm.response.to.have.status(404));",
+                  "pm.test('Error message', () => {",
+                  "  const b = pm.response.json();",
+                  "  pm.expect(b.success).to.be.false;",
+                  "  pm.expect(b.error).to.include('not found');",
+                  "});"
+                ]
+              }
+            }
+          ],
+          "request": {
+            "method": "GET",
+            "url": { "raw": "{{base_url}}/disputes/99999" }
+          }
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,41 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Environment secrets
+.env
+**/.env
+
+# Build outputs
+dist/
+build/
+**/dist/
+
+# Logs
+*.log
+logs/
+**/logs/
+
+# Oracle data volume
+oracle_data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Test artifacts
+coverage/
+.nyc_output/
+
+# Docker
+.dockerignore
+
+# Temp
+tmp/
+temp/

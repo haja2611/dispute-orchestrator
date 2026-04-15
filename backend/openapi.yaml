@@ -1,0 +1,415 @@
+openapi: 3.0.3
+
+info:
+  title: Smart Dispute & Refund Orchestrator API
+  description: |
+    REST API for the Smart Dispute & Refund Orchestrator.
+    All business logic lives in Oracle PL/SQL; the Node layer is a thin facade.
+  version: "1.0.0"
+  contact:
+    name: Dispute Orchestrator Team
+
+servers:
+  - url: http://localhost:3000
+    description: Local development
+
+tags:
+  - name: Health
+    description: Database and service health checks
+  - name: Disputes
+    description: Dispute lifecycle management
+
+# ─── Reusable components ────────────────────────────────────────────────────
+components:
+  schemas:
+
+    ApiResponse:
+      type: object
+      required: [success, data, error]
+      properties:
+        success:
+          type: boolean
+        data:
+          nullable: true
+        error:
+          type: string
+          nullable: true
+
+    Dispute:
+      type: object
+      properties:
+        DISPUTE_ID:    { type: integer, example: 1 }
+        TXN_ID:        { type: integer, example: 2 }
+        CUSTOMER_ID:   { type: integer, example: 1 }
+        CUSTOMER_NAME: { type: string,  example: "Priya Sharma" }
+        KYC_STATUS:    { type: string,  enum: [FULL, PARTIAL, NONE] }
+        MERCHANT_NAME: { type: string,  example: "Amazon" }
+        TXN_AMOUNT:    { type: number,  example: 8000 }
+        TXN_TS:        { type: string,  format: date-time }
+        TXN_STATUS:    { type: string,  example: "SETTLED" }
+        DISPUTE_TYPE:
+          type: string
+          enum: [DUPLICATE_CHARGE, SERVICE_NOT_DELIVERED, WRONG_AMOUNT, FRAUD_SUSPECTED]
+        CLAIM_AMOUNT:   { type: number, example: 8000 }
+        DISPUTE_STATUS:
+          type: string
+          enum: [PENDING_REVIEW, APPROVED, REJECTED, REFUND_INITIATED, REFUNDED, CLOSED]
+        RISK_SCORE:  { type: integer, minimum: 0, maximum: 100, example: 20 }
+        ROUTING:     { type: string,  enum: [AUTO, MANUAL] }
+        ACTOR:       { type: string,  example: "agent-007" }
+        NOTES:       { type: string,  nullable: true }
+        CREATED_AT:  { type: string,  format: date-time }
+        UPDATED_AT:  { type: string,  format: date-time }
+
+    DisputeEvent:
+      type: object
+      properties:
+        EVENT_ID:    { type: integer }
+        DISPUTE_ID:  { type: integer }
+        EVENT_TYPE:  { type: string, example: "DISPUTE_CREATED" }
+        ACTOR:       { type: string, example: "agent-007" }
+        NOTES:       { type: string, nullable: true }
+        CREATED_AT:  { type: string, format: date-time }
+
+    Refund:
+      type: object
+      properties:
+        REFUND_ID:      { type: integer }
+        DISPUTE_ID:     { type: integer }
+        REFERENCE_NO:   { type: string, example: "REF-20240415-1" }
+        REFUND_AMOUNT:  { type: number, example: 8000 }
+        REFUND_STATUS:  { type: string, enum: [INITIATED, PROCESSING, COMPLETED, FAILED] }
+        INITIATED_BY:   { type: string }
+        INITIATED_AT:   { type: string, format: date-time }
+        COMPLETED_AT:   { type: string, format: date-time, nullable: true }
+
+    HealthResponse:
+      type: object
+      properties:
+        status:  { type: string, example: "OK" }
+        dbTime:  { type: string, example: "2024-04-15 10:30:00" }
+        poolStats:
+          type: object
+          properties:
+            connectionsOpen:  { type: integer }
+            connectionsInUse: { type: integer }
+            poolMin:          { type: integer }
+            poolMax:          { type: integer }
+
+    ValidationError:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        data:    { type: object, nullable: true, example: null }
+        error:   { type: string, example: "Validation failed" }
+        details:
+          type: array
+          items:
+            type: object
+            properties:
+              field:   { type: string }
+              message: { type: string }
+
+# ─── Paths ──────────────────────────────────────────────────────────────────
+paths:
+
+  /health/db:
+    get:
+      tags: [Health]
+      summary: Database health check
+      operationId: getDbHealth
+      responses:
+        "200":
+          description: Database is reachable
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        $ref: "#/components/schemas/HealthResponse"
+              example:
+                success: true
+                data:
+                  status: "OK"
+                  dbTime: "2024-04-15 10:30:00"
+                  poolStats: { connectionsOpen: 2, connectionsInUse: 1, poolMin: 2, poolMax: 10 }
+                error: null
+        "503":
+          description: Database unreachable
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+
+  /disputes:
+    post:
+      tags: [Disputes]
+      summary: Create a new dispute
+      operationId: createDispute
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [txnId, custId, disputeType, claimAmount, actor]
+              properties:
+                txnId:
+                  type: integer
+                  minimum: 1
+                  example: 2
+                custId:
+                  type: integer
+                  minimum: 1
+                  example: 1
+                disputeType:
+                  type: string
+                  enum: [DUPLICATE_CHARGE, SERVICE_NOT_DELIVERED, WRONG_AMOUNT, FRAUD_SUSPECTED]
+                  example: DUPLICATE_CHARGE
+                claimAmount:
+                  type: number
+                  minimum: 0.01
+                  example: 8000
+                actor:
+                  type: string
+                  example: "agent-007"
+            example:
+              txnId: 2
+              custId: 1
+              disputeType: DUPLICATE_CHARGE
+              claimAmount: 8000
+              actor: "agent-007"
+      responses:
+        "201":
+          description: Dispute created successfully
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          disputeId: { type: integer, example: 1 }
+                          status:    { type: string,  example: "OK" }
+                          message:   { type: string,  example: "Dispute created and auto-approved. ID=1" }
+              example:
+                success: true
+                data: { disputeId: 1, status: "OK", message: "Dispute created and auto-approved. ID=1" }
+                error: null
+        "400":
+          description: Validation error
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ValidationError"
+        "422":
+          description: Business rule violation (PL/SQL returned ERROR)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: false
+                data: null
+                error: "Active dispute already exists"
+        "500":
+          description: Internal server error
+
+    get:
+      tags: [Disputes]
+      summary: List disputes with optional filters
+      operationId: listDisputes
+      parameters:
+        - name: custId
+          in: query
+          required: false
+          schema:
+            type: integer
+          example: 1
+        - name: status
+          in: query
+          required: false
+          schema:
+            type: string
+            enum: [PENDING_REVIEW, APPROVED, REJECTED, REFUND_INITIATED, REFUNDED, CLOSED]
+      responses:
+        "200":
+          description: Array of disputes
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: array
+                        items:
+                          $ref: "#/components/schemas/Dispute"
+        "400":
+          description: Invalid query parameters
+
+  /disputes/{id}:
+    get:
+      tags: [Disputes]
+      summary: Get a single dispute with audit trail
+      operationId: getDisputeById
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      responses:
+        "200":
+          description: Dispute detail with events
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          dispute:
+                            $ref: "#/components/schemas/Dispute"
+                          events:
+                            type: array
+                            items:
+                              $ref: "#/components/schemas/DisputeEvent"
+        "404":
+          description: Dispute not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: false
+                data: null
+                error: "Dispute 99 not found"
+
+  /disputes/{id}/decision:
+    post:
+      tags: [Disputes]
+      summary: Apply a decision to a dispute
+      operationId: decideDispute
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [decision, actor]
+              properties:
+                decision:
+                  type: string
+                  enum: [APPROVE, REJECT, MANUAL_REVIEW]
+                actor:
+                  type: string
+                  example: "senior-agent"
+                notes:
+                  type: string
+                  nullable: true
+                  example: "Customer account verified"
+            example:
+              decision: APPROVE
+              actor: "senior-agent"
+              notes: "Verified duplicate transaction"
+      responses:
+        "200":
+          description: Decision applied
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: true
+                data: { disputeId: 1, status: "OK", message: "Dispute 1 decision applied: APPROVED" }
+                error: null
+        "400":
+          description: Validation error
+        "422":
+          description: Business rule error (e.g. dispute already approved)
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "500":
+          description: Internal server error
+
+  /disputes/{id}/refund:
+    post:
+      tags: [Disputes]
+      summary: Issue a refund for an approved dispute
+      operationId: refundDispute
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+          example: 1
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [actor]
+              properties:
+                actor:
+                  type: string
+                  example: "refund-bot"
+            example:
+              actor: "refund-bot"
+      responses:
+        "200":
+          description: Refund completed
+          content:
+            application/json:
+              schema:
+                allOf:
+                  - $ref: "#/components/schemas/ApiResponse"
+                  - type: object
+                    properties:
+                      data:
+                        type: object
+                        properties:
+                          disputeId:   { type: integer }
+                          refundId:    { type: integer }
+                          referenceNo: { type: string, example: "REF-20240415-1" }
+                          status:      { type: string, example: "OK" }
+                          message:     { type: string }
+              example:
+                success: true
+                data:
+                  disputeId: 1
+                  refundId: 1
+                  referenceNo: "REF-20240415-1"
+                  status: "OK"
+                  message: "Refund completed. RefNo=REF-20240415-1"
+                error: null
+        "422":
+          description: Dispute not in APPROVED status
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+        "500":
+          description: Internal server error

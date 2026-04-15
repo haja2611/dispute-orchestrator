@@ -1,0 +1,156 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  * { box-sizing: border-box; }
+
+  body {
+    @apply bg-gray-950 text-gray-100 font-sans antialiased;
+    min-height: 100vh;
+  }
+
+  h1 { @apply text-2xl font-bold tracking-tight; }
+  h2 { @apply text-xl font-semibold; }
+  h3 { @apply text-lg font-medium; }
+}
+
+@layer components {
+  /* ── Card ─────────────────────────────────────────────────────── */
+  .card {
+    @apply bg-gray-900 border border-gray-800 rounded-2xl shadow-xl;
+  }
+  .card-header {
+    @apply px-6 py-4 border-b border-gray-800;
+  }
+  .card-body {
+    @apply px-6 py-5;
+  }
+
+  /* ── Glassmorphism panel ──────────────────────────────────────── */
+  .glass {
+    background: rgba(255,255,255,0.04);
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+    @apply border border-white/10 rounded-2xl;
+  }
+
+  /* ── Buttons ──────────────────────────────────────────────────── */
+  .btn {
+    @apply inline-flex items-center gap-2 px-4 py-2 rounded-lg font-medium text-sm
+           transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2
+           focus:ring-offset-gray-950 disabled:opacity-50 disabled:cursor-not-allowed;
+  }
+  .btn-primary {
+    @apply btn bg-brand-600 hover:bg-brand-500 text-white focus:ring-brand-500
+           shadow-lg shadow-brand-900/30 hover:shadow-brand-700/40;
+  }
+  .btn-success {
+    @apply btn bg-emerald-600 hover:bg-emerald-500 text-white focus:ring-emerald-500;
+  }
+  .btn-danger {
+    @apply btn bg-red-600 hover:bg-red-500 text-white focus:ring-red-500;
+  }
+  .btn-warning {
+    @apply btn bg-amber-600 hover:bg-amber-500 text-white focus:ring-amber-500;
+  }
+  .btn-ghost {
+    @apply btn bg-transparent hover:bg-gray-800 text-gray-300 hover:text-white
+           border border-gray-700 hover:border-gray-600 focus:ring-gray-500;
+  }
+
+  /* ── Form inputs ─────────────────────────────────────────────── */
+  .form-label {
+    @apply block text-sm font-medium text-gray-400 mb-1.5;
+  }
+  .form-input {
+    @apply w-full bg-gray-800 border border-gray-700 rounded-lg px-3 py-2 text-sm
+           text-gray-100 placeholder-gray-500
+           focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-transparent
+           transition-all duration-200;
+  }
+  .form-select {
+    @apply form-input appearance-none cursor-pointer;
+  }
+  .form-error {
+    @apply text-red-400 text-xs mt-1;
+  }
+
+  /* ── Status badges ───────────────────────────────────────────── */
+  .badge {
+    @apply inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold
+           uppercase tracking-wide;
+  }
+  .badge-pending  { @apply badge bg-amber-900/60   text-amber-300  border border-amber-700/50; }
+  .badge-approved { @apply badge bg-emerald-900/60 text-emerald-300 border border-emerald-700/50; }
+  .badge-rejected { @apply badge bg-red-900/60     text-red-300    border border-red-700/50; }
+  .badge-refunded { @apply badge bg-blue-900/60    text-blue-300   border border-blue-700/50; }
+  .badge-initiated { @apply badge bg-purple-900/60 text-purple-300 border border-purple-700/50; }
+  .badge-closed   { @apply badge bg-gray-800       text-gray-400   border border-gray-700; }
+
+  /* ── Table ───────────────────────────────────────────────────── */
+  .data-table {
+    @apply w-full text-sm text-left;
+  }
+  .data-table thead tr {
+    @apply border-b border-gray-800;
+  }
+  .data-table thead th {
+    @apply px-4 py-3 text-xs font-semibold text-gray-500 uppercase tracking-widest;
+  }
+  .data-table tbody tr {
+    @apply border-b border-gray-800/60 hover:bg-gray-800/50 transition-colors duration-150 cursor-pointer;
+  }
+  .data-table tbody td {
+    @apply px-4 py-3 text-gray-300;
+  }
+
+  /* ── Timeline ────────────────────────────────────────────────── */
+  .timeline-item {
+    @apply relative pl-8 pb-6 last:pb-0;
+  }
+  .timeline-item::before {
+    content: '';
+    @apply absolute left-3 top-5 bottom-0 w-px bg-gray-800;
+  }
+  .timeline-item:last-child::before {
+    @apply hidden;
+  }
+  .timeline-dot {
+    @apply absolute left-0 top-1 w-6 h-6 rounded-full flex items-center justify-center
+           text-xs font-bold ring-4 ring-gray-950;
+  }
+
+  /* ── Risk score bar ──────────────────────────────────────────── */
+  .risk-bar-track {
+    @apply w-full h-2 bg-gray-800 rounded-full overflow-hidden;
+  }
+  .risk-bar-fill {
+    @apply h-full rounded-full transition-all duration-700 ease-out;
+  }
+
+  /* ── Spinner ─────────────────────────────────────────────────── */
+  .spinner {
+    @apply inline-block w-4 h-4 border-2 border-current border-t-transparent
+           rounded-full animate-spin;
+  }
+}
+
+/* ── Scrollbar ──────────────────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #111827; }
+::-webkit-scrollbar-thumb { background: #374151; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #4b5563; }
+
+/* ── Gradient text ──────────────────────────────────────────────── */
+.gradient-text {
+  background: linear-gradient(135deg, #818cf8 0%, #c084fc 50%, #fb7185 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ── Page transitions ───────────────────────────────────────────── */
+.page-enter {
+  animation: fadeIn 0.25s ease-out;
+}
