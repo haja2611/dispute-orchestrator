@@ -1,6 +1,9 @@
 -- =============================================================================
 -- 03_pkg_dispute_spec.sql  —  PKG_DISPUTE  package specification
 -- =============================================================================
+SET DEFINE OFF;
+ALTER SESSION SET CONTAINER = FREEPDB1;
+ALTER SESSION SET CURRENT_SCHEMA = SYSTEM;
 
 CREATE OR REPLACE PACKAGE PKG_DISPUTE AS
 

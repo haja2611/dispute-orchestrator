@@ -2,6 +2,9 @@
 -- 05_seed.sql  —  Reference/Seed data
 -- 3 customers, 3 accounts, 5 transactions
 -- =============================================================================
+SET DEFINE OFF;
+ALTER SESSION SET CONTAINER = FREEPDB1;
+ALTER SESSION SET CURRENT_SCHEMA = SYSTEM;
 
 -- Disable constraints momentarily if needed (not required — inserting in order)
 -- ---------------------------------------------------------------------------

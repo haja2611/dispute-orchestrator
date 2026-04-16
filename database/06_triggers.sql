@@ -1,6 +1,9 @@
 -- =============================================================================
 -- 06_triggers.sql  —  Audit / housekeeping triggers
 -- =============================================================================
+SET DEFINE OFF;
+ALTER SESSION SET CONTAINER = FREEPDB1;
+ALTER SESSION SET CURRENT_SCHEMA = SYSTEM;
 
 -- ---------------------------------------------------------------------------
 -- Auto-update CUSTOMERS.updated_at on any row change

@@ -2,6 +2,9 @@
 -- 04_pkg_dispute_body.sql  —  PKG_DISPUTE  package body
 -- Oracle 23c Free  |  Run as SYSTEM in FREEPDB1
 -- =============================================================================
+SET DEFINE OFF;
+ALTER SESSION SET CONTAINER = FREEPDB1;
+ALTER SESSION SET CURRENT_SCHEMA = SYSTEM;
 
 CREATE OR REPLACE PACKAGE BODY PKG_DISPUTE AS
 
@@ -154,15 +157,11 @@ CREATE OR REPLACE PACKAGE BODY PKG_DISPUTE AS
     p_actor      IN VARCHAR2,
     p_notes      IN VARCHAR2
   ) IS
-    PRAGMA AUTONOMOUS_TRANSACTION;
   BEGIN
     INSERT INTO DISPUTE_EVENTS (dispute_id, event_type, actor, notes)
     VALUES (p_dispute_id, p_event_type, p_actor, p_notes);
-    COMMIT;
   EXCEPTION
     WHEN OTHERS THEN
-      -- Audit must never break the main flow; swallow and re-raise only in debug
-      ROLLBACK;
       RAISE;
   END SP_AUDIT_EVENT;
 
@@ -350,7 +349,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_DISPUTE AS
         RETURN;
     END CASE;
 
-    -- 4 & 5. Update dispute
+    -- 4 and 5. Update dispute
     UPDATE DISPUTES
        SET status     = v_new_status,
            actor      = p_actor,
@@ -361,7 +360,7 @@ CREATE OR REPLACE PACKAGE BODY PKG_DISPUTE AS
     -- 6. Audit event
     SP_AUDIT_EVENT(p_dispute_id, v_event_type, p_actor, p_notes);
 
-    -- 7. Commit & return
+    -- 7. Commit and return
     COMMIT;
     p_status  := 'OK';
     p_message := 'Dispute ' || p_dispute_id || ' decision applied: ' || v_new_status;

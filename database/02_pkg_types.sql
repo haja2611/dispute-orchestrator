@@ -1,6 +1,9 @@
 -- =============================================================================
 -- 02_pkg_types.sql  —  PKG_DISPUTE_TYPES  (constants package, spec only)
 -- =============================================================================
+SET DEFINE OFF;
+ALTER SESSION SET CONTAINER = FREEPDB1;
+ALTER SESSION SET CURRENT_SCHEMA = SYSTEM;
 
 CREATE OR REPLACE PACKAGE PKG_DISPUTE_TYPES AS
 

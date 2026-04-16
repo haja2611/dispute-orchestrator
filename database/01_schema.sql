@@ -1,7 +1,10 @@
 -- =============================================================================
--- 01_schema.sql  —  Smart Dispute & Refund Orchestrator
+-- 01_schema.sql  —  Smart Dispute and Refund Orchestrator
 -- Oracle 23c Free  |  Run as SYSTEM in FREEPDB1
 -- =============================================================================
+SET DEFINE OFF;
+ALTER SESSION SET CONTAINER = FREEPDB1;
+ALTER SESSION SET CURRENT_SCHEMA = SYSTEM;
 
 -- ---------------------------------------------------------------------------
 -- CUSTOMERS
